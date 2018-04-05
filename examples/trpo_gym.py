@@ -20,7 +20,7 @@ Tensor = DoubleTensor
 torch.set_default_tensor_type('torch.DoubleTensor')
 
 parser = argparse.ArgumentParser(description='PyTorch TRPO example')
-parser.add_argument('--env-name', default="Hopper-v1", metavar='G',
+parser.add_argument('--env-name', default="HalfCheetah-v2", metavar='G',
 					help='name of the environment to run')
 parser.add_argument('--model-path', metavar='G',
 					help='path of pre-trained model')
@@ -64,6 +64,9 @@ if use_gpu:
 txt_note = 'Exp'
 log_name = datetime.now().strftime("%b-%d_%H:%M:%S") +'-'+txt_note
 logdir = configure_log_dir(logname =args.env_name, name=log_name)
+
+"""create log.csv"""
+logger = LoggerCsv(logdir, csvname='log_loss')
 
 
 def env_factory(thread_id):
@@ -132,6 +135,14 @@ def main_loop():
 			print('{}\tT_sample {:.4f}\tT_update {:.4f}\tR_min {:.2f}\tR_max {:.2f}\tR_avg {:.2f}'.format(
 				i_iter, log['sample_time'], t1-t0, log['min_reward'], log['max_reward'], log['avg_reward']))
 
+
+		logger.log({'Iteration': i_iter,
+					'AverageCost': log['avg_reward'],
+					'MinimumCost': log['min_reward'],
+					'MaximumCost': log['max_reward'],
+					})
+		logger.write()
+
 		if args.save_model_interval > 0 and (i_iter+1) % args.save_model_interval == 0:
 			if use_gpu:
 				policy_net.cpu(), value_net.cpu()
@@ -139,6 +150,7 @@ def main_loop():
 						open(os.path.join(assets_dir(), 'learned_models/{}_trpo.p'.format(args.env_name)), 'wb'))
 			if use_gpu:
 				policy_net.cuda(), value_net.cuda()
-
+	#close log_file
+	logger.close()
 
 main_loop()
